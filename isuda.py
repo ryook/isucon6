@@ -31,6 +31,8 @@ _config = {
 #app.config['PROFILE'] = True
 #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
 
+import newrelic.agent
+newrelic.agent.initialize('/home/isucon/webapp/python/newrelic.ini')
 
 def config(key):
     if key in _config:
@@ -233,7 +235,7 @@ def get_keyword(keyword):
     entry = cur.fetchone()
     if entry == None:
         abort(404)
-    
+
     cur = dbh().cursor()
     cur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
     keywords = cur.fetchall()
