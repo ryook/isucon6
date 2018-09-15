@@ -13,6 +13,8 @@ import urllib
 import newrelic.agent
 newrelic.agent.initialize('/home/isucon/webapp/python/newrelic.ini')
 
+from cachetools import LRUCache
+
 static_folder = pathlib.Path(__file__).resolve().parent.parent / 'public'
 app = Flask(__name__, static_folder = str(static_folder), static_url_path='')
 
@@ -27,6 +29,8 @@ _config = {
     'isupam_origin': os.environ.get('ISUPAM_ORIGIN', 'http://localhost:5050'),
 }
 
+
+cache = LRUCache(maxsize=2)
 
 # profile
 #from werkzeug.contrib.profiler import ProfilerMiddleware
@@ -130,14 +134,8 @@ def get_index():
     cur.execute('SELECT description, keyword FROM entry ORDER BY updated_at DESC LIMIT %s OFFSET %s', (PER_PAGE, PER_PAGE * (page - 1),))
     entries = cur.fetchall()
 
-    scur = dbh().cursor()
-    scur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
-    keywords = scur.fetchall()
-
-    keywords = [e['keyword'] for e in keywords]
-
     for entry in entries:
-        entry['html'] = htmlify(entry['description'], keywords)
+        entry['html'] = htmlify(entry['description'])
         entry['stars'] = load_stars(entry['keyword'])
 
     cur.execute('SELECT COUNT(id) AS count FROM entry')
@@ -174,6 +172,13 @@ def create_keyword():
         author_id = %s, keyword = %s, description = %s, updated_at = NOW()
 """
     cur.execute(sql, (user_id, keyword, description, user_id, keyword, description))
+
+    scur = dbh().cursor()
+    scur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
+    keywords = scur.fetchall()
+    keywords = [e['keyword'] for e in keywords]
+    keyword_re = re.compile("(%s)" % '|'.join([re.escape(k) for k in keywords]))
+    cache['keyword_re'] = keyword_re
     return redirect('/')
 
 @app.route('/register')
@@ -235,12 +240,7 @@ def get_keyword(keyword):
     if entry == None:
         abort(404)
 
-    cur = dbh().cursor()
-    cur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
-    keywords = cur.fetchall()
-    keywords = [e['keyword'] for e in keywords]
-
-    entry['html'] = htmlify(entry['description'], keywords)
+    entry['html'] = htmlify(entry['description'])
     entry['stars'] = load_stars(entry['keyword'])
     return render_template('keyword.html', entry = entry)
 
@@ -261,10 +261,18 @@ def delete_keyword(keyword):
 
     return redirect('/')
 
-def htmlify(content, keywords):
+def htmlify(content):
     if content == None or content == '':
         return ''
-    keyword_re = re.compile("(%s)" % '|'.join([re.escape(k) for k in keywords]))
+    
+    keyword_re = cache.get('keyword_re')
+    if not keyword_re:
+        scur = dbh().cursor()
+        scur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
+        keywords = scur.fetchall()
+        keywords = [e['keyword'] for e in keywords]
+        keyword_re = re.compile("(%s)" % '|'.join([re.escape(k) for k in keywords]))
+        cache['keyword_re'] = keyword_re
     kw2sha = {}
     def replace_keyword(m):
         kw2sha[m.group(0)] = "isuda_%s" % hashlib.sha1(m.group(0).encode('utf-8')).hexdigest()
