@@ -10,6 +10,8 @@ import random
 import re
 import string
 import urllib
+import newrelic.agent
+newrelic.agent.initialize('/home/isucon/webapp/python/newrelic.ini')
 
 from cachetools import LRUCache
 
@@ -34,7 +36,6 @@ cache = LRUCache(maxsize=2)
 #from werkzeug.contrib.profiler import ProfilerMiddleware
 #app.config['PROFILE'] = True
 #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
-
 
 def config(key):
     if key in _config:
