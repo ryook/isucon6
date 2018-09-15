@@ -10,6 +10,8 @@ import random
 import re
 import string
 import urllib
+import newrelic.agent
+newrelic.agent.initialize('/home/isucon/webapp/python/newrelic.ini')
 
 static_folder = pathlib.Path(__file__).resolve().parent.parent / 'public'
 app = Flask(__name__, static_folder = str(static_folder), static_url_path='')
@@ -30,9 +32,6 @@ _config = {
 #from werkzeug.contrib.profiler import ProfilerMiddleware
 #app.config['PROFILE'] = True
 #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
-
-import newrelic.agent
-newrelic.agent.initialize('/home/isucon/webapp/python/newrelic.ini')
 
 def config(key):
     if key in _config:
