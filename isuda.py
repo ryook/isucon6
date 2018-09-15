@@ -115,16 +115,6 @@ def authenticate(func):
 
     return wrapper
 
-def get_keywords():
-    keywords = cache.get('keywords')
-    if not keywords:
-        scur = dbh().cursor()
-        scur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
-        keywords = scur.fetchall()
-        keywords = [e['keyword'] for e in keywords]
-        cache['keywords'] = keywords
-    return keywords
-
 @app.route('/initialize')
 def get_initialize():
     cur = dbh().cursor()
@@ -187,9 +177,7 @@ def create_keyword():
     keywords = scur.fetchall()
     keywords = [e['keyword'] for e in keywords]
     keyword_re = re.compile("(%s)" % '|'.join([re.escape(k) for k in keywords]))
-    cache['keywords'] = keywords
     cache['keyword_re'] = keyword_re
-    
     return redirect('/')
 
 @app.route('/register')
@@ -276,9 +264,12 @@ def htmlify(content):
     if content == None or content == '':
         return ''
     
-    keywords = get_keywords()
     keyword_re = cache.get('keyword_re')
     if not keyword_re:
+        scur = dbh().cursor()
+        scur.execute('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
+        keywords = scur.fetchall()
+        keywords = [e['keyword'] for e in keywords]
         keyword_re = re.compile("(%s)" % '|'.join([re.escape(k) for k in keywords]))
         cache['keyword_re'] = keyword_re
     kw2sha = {}
