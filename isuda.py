@@ -297,3 +297,4 @@ def is_spam_contents(content):
 
 if __name__ == "__main__":
     app.run()
+    # app.run(debug=True, port=7777)
