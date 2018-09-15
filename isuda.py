@@ -27,9 +27,9 @@ _config = {
 
 
 # profile
-from werkzeug.contrib.profiler import ProfilerMiddleware
-app.config['PROFILE'] = True
-app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
+#from werkzeug.contrib.profiler import ProfilerMiddleware
+#app.config['PROFILE'] = True
+#app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
 
 
 def config(key):
@@ -296,4 +296,4 @@ def is_spam_contents(content):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=7777)
+    app.run()
